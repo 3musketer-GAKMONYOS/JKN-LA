@@ -1,0 +1,8 @@
+{
+  "name": "Sistem Manajemen Keuangan",
+  "description": "Aplikasi manajemen keuangan (budgeting, accounting, real-time reporting) menggunakan Google Sheets sebagai database utama.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
