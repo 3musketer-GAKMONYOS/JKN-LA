@@ -62,6 +62,7 @@ app.use((req, res, next) => {
   } else if (req.url.startsWith('/.netlify/functions')) {
     req.url = req.url.replace('/.netlify/functions', '');
   }
+  req.originalUrl = req.url;
   next();
 });
 
@@ -1190,7 +1191,7 @@ app.use((req, res, next) => {
     res.status(500).json({ error: 'Terjadi kesalahan internal server', details: err.message });
   });
 
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL && process.env.NETLIFY !== "true") {
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
   const setupVite = async () => {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -1200,7 +1201,7 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL && process.env.
     app.use(vite.middlewares);
   };
   setupVite();
-} else if (!process.env.VERCEL && process.env.NETLIFY !== "true") {
+} else if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
   const distPath = path.join(process.cwd(), 'dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
@@ -1208,7 +1209,7 @@ if (process.env.NODE_ENV !== "production" && !process.env.VERCEL && process.env.
   });
 }
 
-if (!process.env.VERCEL && process.env.NETLIFY !== "true") {
+if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
   const PORT = parseInt(process.env.PORT || '3000', 10);
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
