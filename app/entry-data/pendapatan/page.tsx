@@ -237,7 +237,7 @@ export default function EntryPendapatanPage() {
           {Object.entries(summaryPendapatanBySD).map(([sd, val]) => (
              <div key={sd} className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 p-4 shadow-sm">
                <h4 className="text-xs font-bold text-green-900 uppercase tracking-widest">{sd}</h4>
-               <p className="text-xl font-bold text-green-800 mt-1">Rp {val.toLocaleString('id-ID')}</p>
+               <p className="text-xl font-bold text-green-800 mt-1">Rp {(val as number).toLocaleString('id-ID')}</p>
              </div>
           ))}
         </div>

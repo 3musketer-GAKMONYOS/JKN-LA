@@ -297,7 +297,7 @@ export default function EntryBelanjaPage() {
           {Object.entries(summaryBelanjaBySD).map(([sd, val]) => (
              <div key={sd} className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg border border-red-200 p-4 shadow-sm">
                <h4 className="text-xs font-bold text-red-900 uppercase tracking-widest">{sd}</h4>
-               <p className="text-xl font-bold text-red-800 mt-1">Rp {val.toLocaleString('id-ID')}</p>
+               <p className="text-xl font-bold text-red-800 mt-1">Rp {(val as number).toLocaleString('id-ID')}</p>
              </div>
           ))}
         </div>

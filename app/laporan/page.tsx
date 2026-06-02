@@ -60,9 +60,9 @@ export default function LaporanPage() {
   };
 
   const getDinkesInfo = () => {
-    let namaInstansi = "PUSKESMAS KALITENGAH";
-    let alamatInstansi = "Jl. Mahkota No. 100 Kalitengah 62255";
-    let emailInstansi = "Telp. (0322) 391971 E-mail: puskes.kalitengah@gmail.com";
+    let namaInstansi = "PUSKESMAS LAMONGAN";
+    let alamatInstansi = "Jl. Kusuma Bangsa No. 100 Lamongan 62255";
+    let emailInstansi = "Telp. (0322) 391971 E-mail: pkmlamongankota@gmail.com";
     if (profilData) {
        if (profilData.namaInstansi) namaInstansi = profilData.namaInstansi.toUpperCase();
        if (profilData.alamatInstansi) alamatInstansi = profilData.alamatInstansi;

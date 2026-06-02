@@ -55,17 +55,6 @@ async function getCachedRows(sheet: any) {
 export const app = express();
 app.use(express.json());
 
-// Handle Netlify rewrite path logic seamlessly
-app.use((req, res, next) => {
-  if (req.url.startsWith('/.netlify/functions/api')) {
-    req.url = req.url.replace('/.netlify/functions/api', '/api');
-  } else if (req.url.startsWith('/.netlify/functions')) {
-    req.url = req.url.replace('/.netlify/functions', '');
-  }
-  req.originalUrl = req.url;
-  next();
-});
-
   // ==========================================
   // API ROUTE: /api/master-rekening
   // ==========================================

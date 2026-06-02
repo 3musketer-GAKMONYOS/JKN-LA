@@ -53,7 +53,7 @@ export default function Layout() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-xs shrink-0">EF</div>
             <div>
-              <h1 className="text-sm font-bold leading-none tracking-tight">e-JKN KALITENGAH</h1>
+              <h1 className="text-sm font-bold leading-none tracking-tight">e-JKN LAMONGAN</h1>
               <p className="text-[10px] text-gray-400 mt-1">v2.5.0-Enterprise</p>
             </div>
           </div>
