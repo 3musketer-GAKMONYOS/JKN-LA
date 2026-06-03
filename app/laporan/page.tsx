@@ -273,7 +273,8 @@ export default function LaporanPage() {
               if (t.jenisTransaksi !== 'BELANJA') return false;
               const dt = new Date(t.tanggal);
               if (isNaN(dt.getTime())) return false;
-              return dt.getMonth() === trxMonth && dt.getFullYear() === trxYear;
+              const isSdValid = stdSdLaporan(t.sumberDana) === stdSdLaporan(trx.sumberDana);
+              return dt.getMonth() === trxMonth && dt.getFullYear() === trxYear && isSdValid;
             }).sort((a: any, b: any) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime() || Number(a.id) - Number(b.id)) : [];
             
             const idx = allBulanIni.findIndex((t: any) => t.id === trx.id) + 1;
@@ -334,24 +335,24 @@ export default function LaporanPage() {
         ws.addRow(["", `b. Saldo bank:   Rp. ${saldo.toLocaleString('id-ID')},00`]);
         ws.addRow([]);
       
-        const tglStr = `Kalitengah, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
-        const signRow1 = ws.addRow(["", "Mengesahkan,", "", "", tglStr, "", ""]);
-        const signRow2 = ws.addRow(["", `Kepala FKTP ${namaInstansi}`, "", "", "Bendahara Pengeluaran", "", ""]);
-        const signRow3 = ws.addRow(["", "", "", "", `${namaInstansi}`, "", ""]); 
-        ws.addRow([]); ws.addRow([]); ws.addRow([]);
-        const signRow4 = ws.addRow(["", namaKepala, "", "", namaBendahara, "", ""]);
-        const signRow5 = ws.addRow(["", `NIP. ${nipKepala}`, "", "", `NIP. ${nipBendahara}`, "", ""]);
+        const tglStr = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
+        const signRow1 = ws.addRow(["", "Mengesahkan,", "", "", "", tglStr, ""]);
+        const signRow2 = ws.addRow(["", `Kepala FKTP`, "", "", "", `Bendahara Pengeluaran`, ""]);
+        const signRow3 = ws.addRow(["", namaInstansi, "", "", "", namaInstansi, ""]); 
+        ws.addRow([]); ws.addRow([]);
+        const signRow4 = ws.addRow(["", namaKepala, "", "", "", namaBendahara, ""]);
+        const signRow5 = ws.addRow(["", `NIP. ${nipKepala}`, "", "", "", `NIP. ${nipBendahara}`, ""]);
         
         [signRow1, signRow2, signRow3, signRow4, signRow5].forEach(r => {
-           ws.mergeCells(`B${r.number}:D${r.number}`);
-           ws.mergeCells(`E${r.number}:G${r.number}`);
+           ws.mergeCells(`B${r.number}:C${r.number}`);
+           ws.mergeCells(`F${r.number}:G${r.number}`);
            r.eachCell(c => { 
                 if(c.value) c.alignment = { vertical: 'middle', horizontal: 'center' }; 
            });
         });
 
         signRow4.getCell(2).font = { bold: true, underline: true };
-        signRow4.getCell(5).font = { bold: true, underline: true };
+        signRow4.getCell(6).font = { bold: true, underline: true };
         
       } else if (jenisLaporan === "Laporan Penjagaan") {
         const puskesmasName = namaInstansi.toUpperCase().replace('PUSKESMAS ', '');
@@ -388,7 +389,7 @@ export default function LaporanPage() {
             });
         });
         
-        ws.getColumn(1).width = 5; ws.getColumn(2).width = 25; ws.getColumn(3).width = 50;
+        ws.getColumn(1).width = 5; ws.getColumn(2).width = 28; ws.getColumn(3).width = 37;
         ws.getColumn(4).width = 12; ws.getColumn(5).width = 12; ws.getColumn(6).width = 15;
         [7,8,9,10,11].forEach(col => ws.getColumn(col).width = 20);
 
@@ -476,23 +477,23 @@ export default function LaporanPage() {
         });
       
         ws.addRow([]); ws.addRow([]);
-        const tglStr2 = `Kalitengah, ${format(new Date(endDate), "d MMMM yyyy", { locale: idLocale })}`;
-        const signRow1 = ws.addRow(["", "Mengesahkan,", "", "", "", "", "", "", tglStr2]);
-        const signRow2 = ws.addRow(["", `Kepala FKTP ${namaInstansi.toUpperCase()}`, "", "", "", "", "", "", "Bendahara Pengeluaran"]);
-        const signRow3 = ws.addRow(["", "", "", "", "", "", "", "", `${namaInstansi.toUpperCase()}`]);
-        ws.addRow([]); ws.addRow([]); ws.addRow([]);
-        const signRow4 = ws.addRow(["", namaKepala, "", "", "", "", "", "", namaBendahara]);
-        const signRow5 = ws.addRow(["", `NIP. ${nipKepala}`, "", "", "", "", "", "", `NIP. ${nipBendahara}`]);
+        const tglStr2 = `Lamongan, ${format(new Date(endDate), "d MMMM yyyy", { locale: idLocale })}`;
+        const signRow1 = ws.addRow(["", "Mengesahkan,", "", "", "", "", "", "", "", tglStr2, ""]);
+        const signRow2 = ws.addRow(["", `Kepala FKTP`, "", "", "", "", "", "", "", `Bendahara Pengeluaran`, ""]);
+        const signRow3 = ws.addRow(["", namaInstansi.toUpperCase(), "", "", "", "", "", "", "", namaInstansi.toUpperCase(), ""]);
+        ws.addRow([]); ws.addRow([]);
+        const signRow4 = ws.addRow(["", namaKepala, "", "", "", "", "", "", "", namaBendahara, ""]);
+        const signRow5 = ws.addRow(["", `NIP. ${nipKepala}`, "", "", "", "", "", "", "", `NIP. ${nipBendahara}`, ""]);
         
         [signRow1, signRow2, signRow3, signRow4, signRow5].forEach(r => {
-           ws.mergeCells(`B${r.number}:E${r.number}`);
-           ws.mergeCells(`I${r.number}:K${r.number}`);
+           ws.mergeCells(`B${r.number}:C${r.number}`);
+           ws.mergeCells(`J${r.number}:K${r.number}`);
            r.eachCell(c => { 
                 if(c.value) c.alignment = { vertical: 'middle', horizontal: 'center' }; 
            });
         });
         signRow4.getCell(2).font = { bold: true, underline: true };
-        signRow4.getCell(9).font = { bold: true, underline: true };
+        signRow4.getCell(10).font = { bold: true, underline: true };
         
       } else if (jenisLaporan === "Laporan Realisasi") {
         ws.mergeCells('A1:E1');
@@ -551,7 +552,7 @@ export default function LaporanPage() {
         ws.addRow(["", "Demikian laporan realisasi ini dibuat untuk digunakan sebagaimana mestinya."]);
         ws.addRow([]);
       
-        const tglStrRealisasi = `Kalitengah, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`; 
+        const tglStrRealisasi = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`; 
         const signRow1 = ws.addRow(["", "", "", tglStrRealisasi, ""]); 
         const signRow2 = ws.addRow(["", "", "", `Kepala ${namaInstansi}`, ""]);
         ws.addRow([]); ws.addRow([]); ws.addRow([]);
@@ -577,7 +578,7 @@ export default function LaporanPage() {
         const hRow = ws.addRow(["NO", "KODE REKENING", "URAIAN", "PENDAPATAN", "BELANJA"]);
         hRow.eachCell(c=>{c.font={bold:true}; c.border=borderThin; c.alignment=alignCenter});
         
-        ws.getColumn(1).width = 5; ws.getColumn(2).width = 30; ws.getColumn(3).width = 60; ws.getColumn(4).width = 20; ws.getColumn(5).width = 20;
+        ws.getColumn(1).width = 5; ws.getColumn(2).width = 28; ws.getColumn(3).width = 47; ws.getColumn(4).width = 20; ws.getColumn(5).width = 20;
       
         const itemsMap = new Map<string, any>();
         if (paguAnggaran && Array.isArray(paguAnggaran)) {
@@ -700,11 +701,6 @@ export default function LaporanPage() {
                  c.alignment = { vertical: 'middle', horizontal: 'right' };
                  if (typeof c.value === 'number') c.numFmt = '#,##0';
               }
-              if (item.isHeader && item.uraian !== "BELANJA") {
-                  if (colNum === 4 || colNum === 5) { // fill empty yellow backgrounds just for exactly format match
-                      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-                  }
-              }
            });
         });
       
@@ -712,20 +708,21 @@ export default function LaporanPage() {
         totR.eachCell((c,i)=>{c.border=borderThin; c.alignment= (i===1||i===2)?alignCenter: (i===3?alignCenter:alignRight); c.font={bold:true}; if(typeof c.value==='number')c.numFmt='#,##0';});
       
         ws.addRow([]); ws.addRow([]);
-        const tglStrPendapatan = `Kalitengah, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
-        const sR1 = ws.addRow(["", "Mengetahui,", "", "", tglStrPendapatan]);
-        const sR2 = ws.addRow(["", `Kepala ${namaInstansi}`, "", "", "Bendahara Pengeluaran"]);
-        ws.addRow([]); ws.addRow([]); ws.addRow([]);
-        const sR3 = ws.addRow(["", namaKepala, "", "", namaBendahara]);
-        const sR4 = ws.addRow(["", `NIP. ${nipKepala}`, "", "", `NIP. ${nipBendahara}`]);
+        const tglStrPendapatan = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
+        const sR1 = ws.addRow(["", "Mengetahui,", "", tglStrPendapatan, ""]);
+        const sR2 = ws.addRow(["", `Kepala`, "", `Bendahara Pengeluaran`, ""]);
+        const sR2a = ws.addRow(["", namaInstansi, "", namaInstansi, ""]);
+        ws.addRow([]); ws.addRow([]);
+        const sR3 = ws.addRow(["", namaKepala, "", namaBendahara, ""]);
+        const sR4 = ws.addRow(["", `NIP. ${nipKepala}`, "", `NIP. ${nipBendahara}`, ""]);
         
-        [sR1, sR2, sR3, sR4].forEach(r => {
+        [sR1, sR2, sR2a, sR3, sR4].forEach(r => {
            ws.mergeCells(`B${r.number}:C${r.number}`);
-           ws.mergeCells(`E${r.number}:F${r.number}`);
+           ws.mergeCells(`D${r.number}:E${r.number}`);
            r.eachCell(c => { if (c.value) c.alignment = { vertical: 'middle', horizontal: 'center' }; });
         });
         sR3.getCell(2).font = { bold: true, underline: true };
-        sR3.getCell(5).font = { bold: true, underline: true };
+        sR3.getCell(4).font = { bold: true, underline: true };
         
       } else if (jenisLaporan === "SPTJM") {
         const tahunSptjm = format(new Date(endDate), "yyyy");
@@ -752,7 +749,7 @@ export default function LaporanPage() {
         const hb = ws.addRow(["Kode rekening", "Jumlah", "Kode Rekening", "Jumlah"]);
         hb.eachCell(c=>{c.border=borderThin; c.font={bold:true}; c.alignment=alignCenter;});
         
-        ws.getColumn(1).width = 40; ws.getColumn(2).width = 25; ws.getColumn(3).width = 40; ws.getColumn(4).width = 25;
+        ws.getColumn(1).width = 25; ws.getColumn(2).width = 20; ws.getColumn(3).width = 25; ws.getColumn(4).width = 20;
       
         const pendMap = new Map<string, number>();
         const belMap = new Map<string, number>();
@@ -794,18 +791,18 @@ export default function LaporanPage() {
         ws.mergeCells(`A${tr.number+2}:D${tr.number+2}`); ws.getCell(`A${tr.number+2}`).value = "Bukti - bukti pendapatan dan atau belanja di atas disimpan sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan...";
         ws.addRow([]);
         
-        const tglStrSPTJM = `Kalitengah, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
-        const sR1 = ws.addRow(["", "", "", tglStrSPTJM, ""]);
-        const sR2 = ws.addRow(["", "", "", `Kepala ${namaInstansi}`, ""]);
+        const tglStrSPTJM = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
+        const sR1 = ws.addRow(["", "", tglStrSPTJM, ""]);
+        const sR2 = ws.addRow(["", "", `Kepala ${namaInstansi}`, ""]);
         ws.addRow([]); ws.addRow([]); ws.addRow([]);
-        const sR3 = ws.addRow(["", "", "", namaKepala, ""]);
-        const sR4 = ws.addRow(["", "", "", `NIP. ${nipKepala}`, ""]);
+        const sR3 = ws.addRow(["", "", namaKepala, ""]);
+        const sR4 = ws.addRow(["", "", `NIP. ${nipKepala}`, ""]);
         
         [sR1, sR2, sR3, sR4].forEach(r => {
-           ws.mergeCells(`D${r.number}:E${r.number}`);
+           ws.mergeCells(`C${r.number}:D${r.number}`);
            r.eachCell(c => { if(c.value) c.alignment = { vertical: 'middle', horizontal: 'center' }; });
         });
-        sR3.getCell(4).font = { bold: true, underline: true };
+        sR3.getCell(3).font = { bold: true, underline: true };
         
       } else if (jenisLaporan === "Laporan Belanja Modal (Kapitasi)") {
         ws.mergeCells('A1:N1'); ws.getCell('A1').value = `BELANJA MODAL DANA ${sumberDana}`; ws.getCell('A1').alignment=alignCenter; ws.getCell('A1').font={bold:true};
@@ -852,7 +849,7 @@ export default function LaporanPage() {
         ws.mergeCells(`L${tr.number}:N${tr.number}`);
       
         ws.addRow([]); ws.addRow([]);
-        const tglStrMod = `Kalitengah, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
+        const tglStrMod = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
         const sR1 = ws.addRow(["", "", "", "", "", "", "", "", "", "", tglStrMod, ""]);
         const sR2 = ws.addRow(["", "", "", "", "", "", "", "", "", "", "Mengetahui", ""]);
         const sR3 = ws.addRow(["", "", "", "", "", "", "", "", "", "", `KEPALA ${namaInstansi.toUpperCase()}`, ""]);
@@ -921,7 +918,7 @@ export default function LaporanPage() {
       r5.eachCell((c, i) => { if(i<=4) c.border = { bottom: { style: 'double' } } });
   
       ws.addRow([]);
-      const dR = ws.addRow(["", "", `Kalitengah, ${format(new Date(), "dd MMMM yyyy", { locale: idLocale })}`]);
+      const dR = ws.addRow(["", "", `Lamongan, ${format(new Date(), "dd MMMM yyyy", { locale: idLocale })}`]);
       ws.mergeCells(`C${dR.number}:D${dR.number}`);
       ws.addRow([]);
       ws.addRow(["", "", "Kepada"]);
