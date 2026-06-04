@@ -454,9 +454,9 @@ export default function LaporanPage() {
                no++,
                item.kodeRekening || "-",
                item.uraian || "-",
-               "-",
-               "-",
-               "-",
+               item.jumlahItem || "-",
+               item.satuan || "-",
+               item.harga ? Number(item.harga) : "-",
                anggaran,
                rLalu,
                sisaLalu,
@@ -567,18 +567,18 @@ export default function LaporanPage() {
         
       } else if (jenisLaporan === "Laporan Pendapatan") {
         const titleSD = sumberDana.toUpperCase() + (sumberDana.toUpperCase() === 'KAPITASI' || sumberDana.toUpperCase() === 'NON-KAPITASI' ? ' JKN' : '');
-        ws.mergeCells('A1:E1'); ws.getCell('A1').value = `PENDAPATAN DAN BELANJA DANA ${titleSD}`; ws.getCell('A1').alignment=alignCenter; ws.getCell('A1').font={bold:true};
-        ws.mergeCells('A2:E2'); ws.getCell('A2').value = `PUSKESMAS ${namaInstansi.toUpperCase().replace('PUSKESMAS ', '')}`; ws.getCell('A2').alignment=alignCenter; ws.getCell('A2').font={bold:true};
+        ws.mergeCells('A1:I1'); ws.getCell('A1').value = `PENDAPATAN DAN BELANJA DANA ${titleSD}`; ws.getCell('A1').alignment=alignCenter; ws.getCell('A1').font={bold:true};
+        ws.mergeCells('A2:I2'); ws.getCell('A2').value = `PUSKESMAS ${namaInstansi.toUpperCase().replace('PUSKESMAS ', '')}`; ws.getCell('A2').alignment=alignCenter; ws.getCell('A2').font={bold:true};
         
         const bln = format(new Date(endDate), "MMMM", { locale: idLocale });
         const thnLap = format(new Date(endDate), "yyyy", { locale: idLocale });
-        ws.mergeCells('A3:E3'); ws.getCell('A3').value = `Bulan ${bln} Tahun ${thnLap}`; ws.getCell('A3').alignment=alignCenter; ws.getCell('A3').font={bold:true};
+        ws.mergeCells('A3:I3'); ws.getCell('A3').value = `Bulan ${bln} Tahun ${thnLap}`; ws.getCell('A3').alignment=alignCenter; ws.getCell('A3').font={bold:true};
         
         ws.addRow([]);
-        const hRow = ws.addRow(["NO", "KODE REKENING", "URAIAN", "PENDAPATAN", "BELANJA"]);
+        const hRow = ws.addRow(["NO", "KODE REKENING", "URAIAN", "JUMLAH ITEM", "SATUAN", "HARGA (Rp)", "ANGGARAN (Rp)", "PENDAPATAN", "BELANJA"]);
         hRow.eachCell(c=>{c.font={bold:true}; c.border=borderThin; c.alignment=alignCenter});
         
-        ws.getColumn(1).width = 5; ws.getColumn(2).width = 28; ws.getColumn(3).width = 47; ws.getColumn(4).width = 20; ws.getColumn(5).width = 20;
+        ws.getColumn(1).width = 5; ws.getColumn(2).width = 28; ws.getColumn(3).width = 47; ws.getColumn(4).width = 15; ws.getColumn(5).width = 15; ws.getColumn(6).width = 18; ws.getColumn(7).width = 20; ws.getColumn(8).width = 20; ws.getColumn(9).width = 20;
       
         const itemsMap = new Map<string, any>();
         if (paguAnggaran && Array.isArray(paguAnggaran)) {
@@ -689,7 +689,17 @@ export default function LaporanPage() {
               currentNo = no++;
            }
 
-           const r = ws.addRow([currentNo, displayKr, item.uraian || "-", colPendapatan, colBelanja]);
+           const r = ws.addRow([
+              currentNo, 
+              displayKr, 
+              item.uraian || "-", 
+              item.jumlahItem || "-", 
+              item.satuan || "-", 
+              item.harga ? Number(item.harga) : "-", 
+              item.nominalPagu ? Number(item.nominalPagu) : "-", 
+              colPendapatan, 
+              colBelanja
+           ]);
            r.eachCell((c, colNum) => {
               c.border = borderThin;
               if (item.isTopTitle || item.isHeader) {
@@ -697,6 +707,7 @@ export default function LaporanPage() {
               }
               if (colNum === 1) c.alignment = { vertical: 'middle', horizontal: 'center' };
               else if (colNum === 2 || colNum === 3) c.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+              else if (colNum === 4 || colNum === 5) c.alignment = { vertical: 'middle', horizontal: 'center' };
               else {
                  c.alignment = { vertical: 'middle', horizontal: 'right' };
                  if (typeof c.value === 'number') c.numFmt = '#,##0';
@@ -704,25 +715,33 @@ export default function LaporanPage() {
            });
         });
       
-        const totR = ws.addRow(["", "", "JUMLAH", totalPendapatan === 0 ? "-" : totalPendapatan, totalBelanja === 0 ? "-" : totalBelanja]);
-        totR.eachCell((c,i)=>{c.border=borderThin; c.alignment= (i===1||i===2)?alignCenter: (i===3?alignCenter:alignRight); c.font={bold:true}; if(typeof c.value==='number')c.numFmt='#,##0';});
+        const totR = ws.addRow(["", "", "JUMLAH", "", "", "", "", totalPendapatan === 0 ? "-" : totalPendapatan, totalBelanja === 0 ? "-" : totalBelanja]);
+        totR.eachCell((c,i)=>{
+            c.border=borderThin; 
+            c.font={bold:true};
+            if(i===1||i===2) c.alignment=alignCenter;
+            else if(i===3) c.alignment=alignCenter;
+            else c.alignment=alignRight;
+            
+            if(typeof c.value==='number') c.numFmt='#,##0';
+        });
       
         ws.addRow([]); ws.addRow([]);
         const tglStrPendapatan = `Lamongan, ${format(new Date(endDate), "dd MMMM yyyy", { locale: idLocale })}`;
-        const sR1 = ws.addRow(["", "Mengetahui,", "", tglStrPendapatan, ""]);
-        const sR2 = ws.addRow(["", `Kepala`, "", `Bendahara Pengeluaran`, ""]);
-        const sR2a = ws.addRow(["", namaInstansi, "", namaInstansi, ""]);
+        const sR1 = ws.addRow(["", "", "Mengetahui,", "", "", "", "", tglStrPendapatan, ""]);
+        const sR2 = ws.addRow(["", "", `Kepala`, "", "", "", "", `Bendahara Pengeluaran`, ""]);
+        const sR2a = ws.addRow(["", "", namaInstansi, "", "", "", "", namaInstansi, ""]);
         ws.addRow([]); ws.addRow([]);
-        const sR3 = ws.addRow(["", namaKepala, "", namaBendahara, ""]);
-        const sR4 = ws.addRow(["", `NIP. ${nipKepala}`, "", `NIP. ${nipBendahara}`, ""]);
+        const sR3 = ws.addRow(["", "", namaKepala, "", "", "", "", namaBendahara, ""]);
+        const sR4 = ws.addRow(["", "", `NIP. ${nipKepala}`, "", "", "", "", `NIP. ${nipBendahara}`, ""]);
         
         [sR1, sR2, sR2a, sR3, sR4].forEach(r => {
-           ws.mergeCells(`B${r.number}:C${r.number}`);
-           ws.mergeCells(`D${r.number}:E${r.number}`);
+           ws.mergeCells(`C${r.number}:F${r.number}`);
+           ws.mergeCells(`H${r.number}:I${r.number}`);
            r.eachCell(c => { if (c.value) c.alignment = { vertical: 'middle', horizontal: 'center' }; });
         });
-        sR3.getCell(2).font = { bold: true, underline: true };
-        sR3.getCell(4).font = { bold: true, underline: true };
+        sR3.getCell(3).font = { bold: true, underline: true };
+        sR3.getCell(8).font = { bold: true, underline: true };
         
       } else if (jenisLaporan === "SPTJM") {
         const tahunSptjm = format(new Date(endDate), "yyyy");

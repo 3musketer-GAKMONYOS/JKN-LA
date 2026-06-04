@@ -107,13 +107,38 @@ export default function MasterDataPage() {
   };
 
   const downloadFormatPagu = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      { Sumber_Dana: "Kapitasi", Kode_Rekening: "1.02.02.2.02.33.5", Uraian: "BELANJA DAERAH", Jumlah: 1500000 },
-      { Sumber_Dana: "Non Kapitasi", Kode_Rekening: "1.02.02.2.02.33.5.1", Uraian: "BELANJA OPERASI", Jumlah: 1500000 },
-      { Sumber_Dana: "Retribusi", Kode_Rekening: "1.02.02.2.02.33.5.1.01", Uraian: "BELANJA PEGAWAI", Jumlah: 1500000 },
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["SUMBER DANA", "KODE REKENING", "URAIAN", "ANGGARAN 2026", "", "", ""],
+      ["", "", "", "Jumlah Item", "Satuan", "Harga", "Total"],
+      ["1", "2", "3", "4", "5", "6", "7"],
+      ["Kapitasi", "1.02.0.00.0.00.02.0037.5.1.01.01.09.00001", "Belanja Iuran Jaminan Kesehatan PNS", "-", "-", "-", 25000000],
+      ["Kapitasi", "1.02.0.00.0.00.02.0037.5.1.01.01.09.00002", "Belanja Iuran Jaminan Kesehatan PPPK", "-", "-", "-", 18000000],
+      ["Non-Kapitasi", "1.02.1.03.01.4.1.02.04.01.0001", "Pendapatan Dana NON-KAPITASI JKN", "-", "-", "-", 0]
     ]);
-    // Set column widths
-    ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 35 }, { wch: 15 }];
+
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // SUMBER DANA
+      { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // KODE REKENING
+      { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, // URAIAN
+      { s: { r: 0, c: 3 }, e: { r: 0, c: 6 } }  // ANGGARAN 2026
+    ];
+
+    ws['!cols'] = [{ wch: 15 }, { wch: 45 }, { wch: 45 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+    
+    // Styling
+    for (let r = 0; r <= 6; r++) {
+       for (let c = 0; c <= 6; c++) {
+          const cell = ws[XLSX.utils.encode_cell({ r, c })];
+          if (cell) {
+             if (r < 3) {
+                cell.s = { font: { bold: true }, alignment: { horizontal: "center", vertical: "center" }, border: { top: {style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} } };
+             } else {
+                cell.s = { border: { top: {style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'} } };
+             }
+          }
+       }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Pagu_Anggaran");
     XLSX.writeFile(wb, "Format_Pagu_Anggaran.xlsx");
@@ -130,9 +155,63 @@ export default function MasterDataPage() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        let jsonData: any[] = [];
+        if (type === "pagu") {
+          const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          if (rawData.length === 0) throw new Error("File Excel kosong");
+          
+          let headerIdx = -1;
+          for (let i = 0; i < Math.min(10, rawData.length); i++) {
+             if (String(rawData[i]?.[0]).toUpperCase().includes("SUMBER DANA") || String(rawData[i]?.[1]).toUpperCase().includes("KODE REKENING")) {
+                 headerIdx = i;
+                 break;
+             }
+          }
 
-        if (jsonData.length === 0) throw new Error("File Excel kosong");
+          if (headerIdx !== -1) {
+             for (let r = headerIdx + 1; r < rawData.length; r++) {
+                const row = rawData[r];
+                if (!row || row.length === 0) continue;
+                
+                let val1 = String(row[0] || "").trim();
+                let val2 = String(row[1] || "").trim();
+                
+                // Skip sub-headers or numbering rows
+                if (val2 === "" && String(row[3] || "").includes("Jumlah Item")) continue;
+                if (val1 === "1" && val2 === "2" && String(row[2] || "").trim() === "3") continue;
+                
+                let sumberDana = val1;
+                let kode = val2;
+                let uraian = String(row[2] || "").trim();
+                let jumlahItem = String(row[3] || "").trim() || "-";
+                let satuan = String(row[4] || "").trim() || "-";
+                let harga = typeof row[5] === 'number' ? row[5] : parseFloat(String(row[5] || "0").replace(/[^0-9.-]/g, ''));
+                if (isNaN(harga)) harga = 0;
+                
+                // We use column 6 (Total) as per the template
+                let nominal = typeof row[6] === 'number' ? row[6] : parseFloat(String(row[6] || "0").replace(/[^0-9.-]/g, ''));
+                if (isNaN(nominal)) nominal = 0;
+                
+                if (kode && (uraian || nominal > 0)) {
+                   jsonData.push({
+                      Sumber_Dana: sumberDana || "UMUM", // default if empty
+                      Kode_Rekening: kode,
+                      Uraian: uraian,
+                      Jumlah_Item: jumlahItem,
+                      Satuan: satuan,
+                      Harga: harga,
+                      Nominal_Pagu: nominal
+                   });
+                }
+             }
+          } else {
+             jsonData = XLSX.utils.sheet_to_json(worksheet);
+          }
+        } else {
+          jsonData = XLSX.utils.sheet_to_json(worksheet);
+        }
+
+        if (jsonData.length === 0) throw new Error("File Excel kosong atau format tidak sesuai");
 
         if (type === "rekening") {
           setImportingRekening(true);
@@ -282,7 +361,7 @@ export default function MasterDataPage() {
              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">Import Pagu Anggaran</h3>
           </div>
           <div className="p-5 flex flex-col items-center justify-center space-y-4">
-            <p className="text-sm text-center text-gray-600">Unggah file Excel (.xlsx) dengan kolom: <br/><strong className="font-mono bg-gray-100 px-1 rounded text-xs text-blue-700">Sumber_Dana</strong>, <strong className="font-mono bg-gray-100 px-1 rounded text-xs text-blue-700">Kode_Rekening</strong>, <strong className="font-mono bg-gray-100 px-1 rounded text-xs text-blue-700">Uraian</strong>, dan <strong className="font-mono bg-gray-100 px-1 rounded text-xs text-blue-700">Jumlah</strong></p>
+            <p className="text-sm text-center text-gray-600">Terima file Excel (.xlsx) sesuai dengan format baku. Judul (opsional) dengan kata "DANA [Sumber]" untuk mendeteksi sumber dana. Baris header mengandung KODE REKENING, URAIAN, lalu ikuti tabel rincian (gunakan Total di kolom ke-6).</p>
 
             <button type="button" onClick={downloadFormatPagu} className="text-xs text-green-600 hover:text-green-800 font-medium underline underline-offset-2">
               Unduh Format Excel Pagu Anggaran

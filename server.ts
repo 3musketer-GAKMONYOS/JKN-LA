@@ -133,7 +133,7 @@ app.use(express.json());
       const nominalTransaksi = parseFloat(nominal);
       
       // Check Worksheets
-      const paguSheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Nominal_Pagu']);
+      const paguSheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Jumlah_Item', 'satuan', 'harga', 'nominal_pagu']);
       const transaksiSheet = await getOrInitSheet(doc, 'Transaksi', ['ID', 'Tanggal', 'Jenis_Transaksi', 'Sumber_Dana', 'Sub_Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Nominal']);
 
       // 1. BUSINESS LOGIC: PENJAGAAN PAGU (Budget Control)
@@ -176,7 +176,7 @@ app.use(express.json());
           });
         }
 
-        const nominalPagu = parseFloat(matchingPagu.get('Nominal_Pagu')) || 0;
+        const nominalPagu = parseFloat(matchingPagu.get('nominal_pagu')) || 0;
 
         // Calculate total expenditure so far
         let transaksiRows: any[] = [];
@@ -282,7 +282,7 @@ app.use(express.json());
 
       // Budget Control Logic when editing BELANJA
       if (jenisTransaksi.toUpperCase() === 'BELANJA') {
-        const paguSheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Nominal_Pagu']);
+        const paguSheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Jumlah_Item', 'satuan', 'harga', 'nominal_pagu']);
         let paguRows: any[] = [];
         try { if (paguSheet.rowCount > 0) paguRows = await paguSheet.getRows(); } catch (e) { console.warn(e); }
 
@@ -311,7 +311,7 @@ app.use(express.json());
           });
         }
 
-        const nominalPagu = parseFloat(matchingPagu.get('Nominal_Pagu')) || 0;
+        const nominalPagu = parseFloat(matchingPagu.get('nominal_pagu')) || 0;
 
         let transaksiRows: any[] = [];
         try { if (transaksiSheet.rowCount > 0) transaksiRows = await transaksiSheet.getRows(); } catch (e) { }
@@ -419,10 +419,8 @@ app.use(express.json());
       
       const rows = await sheet.getRows();
       if (rows.length > 0) {
-        // clear rows from bottom to top to avoid shifting issues
-        for (let i = rows.length - 1; i >= 0; i--) {
-          await rows[i].delete();
-        }
+        // clear all rows except header
+        await sheet.clearRows();
       }
       
       if (data.length > 0) {
@@ -526,13 +524,18 @@ app.use(express.json());
       const { data } = req.body;
       if (!Array.isArray(data)) return res.status(400).json({error: 'Data must be an array'});
       const doc = await connectToSpreadsheet();
-      const sheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Nominal_Pagu']);
+      const headersPagu = ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Jumlah_Item', 'satuan', 'harga', 'nominal_pagu'];
+      const sheet = await getOrInitSheet(doc, 'Pagu_Anggaran', headersPagu);
       
+      try {
+        await sheet.setHeaderRow(headersPagu);
+      } catch (err) {
+        console.warn("Could not force setHeaderRow, perhaps sheet is empty", err);
+      }
+
       const rows = await sheet.getRows();
       if (rows.length > 0) {
-        for (let i = rows.length - 1; i >= 0; i--) {
-          await rows[i].delete();
-        }
+        await sheet.clearRows();
       }
       
       if (data.length > 0) {
@@ -544,13 +547,22 @@ app.use(express.json());
           let sumberDana = '';
           let uraian = '';
           let kodeRekening = '';
+          let jumlahItem = '';
+          let satuan = '';
+          let harga = 0;
           let nominalPagu = 0;
           for (const k of keys) {
             const norm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
             if (norm.includes('sumber') && !norm.includes('sub')) sumberDana = String(item[k]).trim();
             if (norm.includes('uraian') || norm.includes('nama')) uraian = String(item[k]).trim();
             if (norm.includes('kode') || norm.includes('rekening')) kodeRekening = String(item[k]).trim();
-            if (norm.includes('nominal') || norm.includes('pagu') || norm.includes('anggaran') || norm.includes('jumlah')) {
+            if (norm.includes('jumlahitem')) jumlahItem = String(item[k]).trim();
+            if (norm.includes('satuan')) satuan = String(item[k]).trim();
+            if (norm.includes('harga')) {
+               const val = String(item[k]).replace(/[^0-9.-]/g, '');
+               harga = parseFloat(val) || 0;
+            }
+            if (norm.includes('nominal') || norm.includes('pagu') || norm.includes('anggaran') || (norm.includes('total'))) {
                const val = String(item[k]).replace(/[^0-9.-]/g, '');
                nominalPagu = parseFloat(val) || 0;
             }
@@ -571,9 +583,12 @@ app.use(express.json());
             Sumber_Dana: sumberDana,
             Kode_Rekening: kodeRekening,
             Uraian: uraian,
-            Nominal_Pagu: nominalPagu
+            Jumlah_Item: jumlahItem,
+            satuan: satuan,
+            harga: harga,
+            nominal_pagu: nominalPagu
           };
-        }).filter(p => p.Kode_Rekening && (p.Nominal_Pagu > 0 || p.Uraian));
+        }).filter(p => p.Kode_Rekening && (p.nominal_pagu > 0 || p.Uraian));
 
         const chunkSize = 500;
         for (let i = 0; i < processedPagu.length; i += chunkSize) {
@@ -595,7 +610,7 @@ app.use(express.json());
   app.get('/api/pagu-anggaran', async (req, res) => {
     try {
       const doc = await connectToSpreadsheet();
-      const sheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Nominal_Pagu']);
+      const sheet = await getOrInitSheet(doc, 'Pagu_Anggaran', ['Sumber_Dana', 'Kode_Rekening', 'Uraian', 'Jumlah_Item', 'satuan', 'harga', 'nominal_pagu']);
       let rows: any[] = [];
       try {
         rows = await getCachedRows(sheet);
@@ -606,7 +621,10 @@ app.use(express.json());
         sumberDana: r.get('Sumber_Dana'),
         kodeRekening: r.get('Kode_Rekening'),
         uraian: r.get('Uraian'),
-        nominalPagu: parseFloat(r.get('Nominal_Pagu')) || 0,
+        jumlahItem: r.get('Jumlah_Item') || '-',
+        satuan: r.get('satuan') || '-',
+        harga: parseFloat(r.get('harga')) || 0,
+        nominalPagu: parseFloat(r.get('nominal_pagu')) || 0,
       }));
       res.json(data);
     } catch (error: any) {
